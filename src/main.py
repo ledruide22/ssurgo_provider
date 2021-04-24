@@ -1,12 +1,14 @@
+from math import isnan
+
 import pandas as pd
 from osgeo import ogr
 
-from src.object.ssurgo_soil_dto import SoilHorizon
+from src.object.ssurgo_soil_dto import SoilHorizon, SsurgoSoilDto
 
 
 def open_gdb(ssurgo_folder_path):
     """
-        This function is usefull to open the suurgo geo data base containing all soil information
+        This function is usefull to open the ssurgo geo data base containing all soil information
     Args:
         ssurgo_folder_path (path): path to the ssurgo .gdb folder
 
@@ -132,21 +134,60 @@ def find_soil_horizon_distribution(pts_info_df, gdb):
     return pts_info_df
 
 
-def find_soil_composition(pts_info_df, gdb):
-    component = gdb.GetLayer("component")
+def extract_soil_horizon_data(pts_info_df, gdb):
+    """
+        This function is useful to extract all
+    Args:
+        pts_info_df (dataframe): see find_soil_horizon_distribution
+        gdb (DataSource): ssurgo state datasource
+
+    Returns:
+        soil_data_dict (dict): dict with SoilHorizon for each co_key in pts_info_df
+    """
+    co_key_list = list(pts_info_df.co_key_0) + list(pts_info_df.co_key_1) + list(pts_info_df.co_key_2)
+    co_key_list_filtered = set([int(co_key) for co_key in co_key_list if not isnan(co_key)])
     c_horizon_polygon = gdb.GetLayer("chorizon")
-    result_temps = []
-    for mu_key in pts_info_df.mu_key.unique():
-        component.SetAttributeFilter(f"mukey = '{int(mu_key)}'")
-        co_keys = []
-        for feature_component in component:
-            co_keys.append(feature_component.GetField("cokey"))
-        for co_key in co_keys:
-            c_horizon_polygon.SetAttributeFilter(f"cokey = '{co_key}'")
-            for feature_horizon in c_horizon_polygon:
-                result_temps.append(SoilHorizon(feature_horizon))
-        print('finish')
-    return True
+    soil_data_dict = dict()
+    for co_key in co_key_list_filtered:
+        feature_nb = c_horizon_polygon.SetAttributeFilter(f"cokey = '{co_key}'")
+        if feature_nb == 0:
+            soil_data_dict[str(co_key)] = None
+        for feature_horizon in c_horizon_polygon:
+            soil_data_dict[str(co_key)] = SoilHorizon(None, feature_horizon)
+
+    return soil_data_dict
+
+
+def build_soil_composition(pts_info_df, soil_data_dict):
+    """
+        This function is useful to build list of SsurgoSoilDto for each location
+    Args:
+        pts_info_df (dataframe): see extract_soil_horizon_data
+        soil_data_dict (dict): dict with SoilHorizon for each co_key in pts_info_df
+
+    Returns:
+        soil_composition_list (list): list of SsurgoSoilDto, one for each location in pts_info_df
+    """
+    soil_composition_list = []
+    for _, pt_info in pts_info_df.iterrows():
+        ssurgo_soil_dto = SsurgoSoilDto(pt_info.points.GetX(), pt_info.points.GetY())
+        if not isnan(pt_info.co_key_0):
+            soil_horizon = soil_data_dict[str(int(pt_info.co_key_0))]
+            if soil_horizon is not None:
+                soil_horizon.comppct_r = pt_info.co_key_0_pct
+            ssurgo_soil_dto.horizon_0 = soil_horizon
+        if not isnan(pt_info.co_key_1):
+            soil_horizon = soil_data_dict[str(int(pt_info.co_key_1))]
+            if soil_horizon is not None:
+                soil_horizon.comppct_r = pt_info.co_key_1_pct
+            ssurgo_soil_dto.horizon_1 = soil_horizon
+        if not isnan(pt_info.co_key_2):
+            soil_horizon = soil_data_dict[str(int(pt_info.co_key_2))]
+            if soil_horizon is not None:
+                soil_horizon.comppct_r = pt_info.co_key_2_pct
+            ssurgo_soil_dto.horizon_2 = soil_horizon
+        soil_composition_list.append(ssurgo_soil_dto)
+    return soil_composition_list
 
 
 def retrieve_soil_composition(coordinates, ssurgo_folder_path):
@@ -157,6 +198,7 @@ def retrieve_soil_composition(coordinates, ssurgo_folder_path):
         ssurgo_folder_path (path): path to the ssurgo database at the state level
 
     Returns:
+        soil_composition_list (list): list of SsurgoSoilDto, one for each location
 
     """
     pts_coordinates = []
@@ -171,7 +213,8 @@ def retrieve_soil_composition(coordinates, ssurgo_folder_path):
     pts_info_df = find_county_id(pts_coordinates, gdb)
     pts_info_df = find_soil_id_ref(pts_info_df, gdb)
     pts_info_df = find_soil_horizon_distribution(pts_info_df, gdb)
-    #find_soil_composition(pts_info_df, gdb)
-
+    soil_data_dict = extract_soil_horizon_data(pts_info_df, gdb)
     del gdb
-    return True
+
+    soil_composition_list = build_soil_composition(pts_info_df, soil_data_dict)
+    return soil_composition_list
