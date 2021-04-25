@@ -1,7 +1,7 @@
 from math import isnan
 
 import pandas as pd
-from osgeo import ogr
+from osgeo import ogr, osr
 
 from src.object.ssurgo_soil_dto import SoilHorizon, SsurgoSoilDto
 
@@ -194,18 +194,32 @@ def retrieve_soil_composition(coordinates, ssurgo_folder_path):
     """
         This function is usefull to retrieve soil data for the location specified in coordinates
     Args:
-        coordinates (list): list of Points (lat, long coordinate)
+        coordinates (list): list of Points (lat, long coordinate) (espg 4326)
         ssurgo_folder_path (path): path to the ssurgo database at the state level
 
     Returns:
         soil_composition_list (list): list of SsurgoSoilDto, one for each location
 
     """
+    target = osr.SpatialReference()
+    target.ImportFromWkt('PROJCS["USA_Contiguous_Albers_Equal_Area_Conic_USGS_version",'
+                         'GEOGCS["GCS_North_American_1983",DATUM["D_North_American_1983",'
+                         'SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],'
+                         'UNIT["Degree",0.0174532925199433]],PROJECTION["Albers"],'
+                         'PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],'
+                         'PARAMETER["Central_Meridian",-96.0],PARAMETER["Standard_Parallel_1",29.5],'
+                         'PARAMETER["Standard_Parallel_2",45.5],PARAMETER["Latitude_Of_Origin",23.0],'
+                         'UNIT["Meter",1.0],AUTHORITY["ESRI","102039"]]')
+    source = osr.SpatialReference()
+    source.ImportFromEPSG(4326)
+    transform = osr.CoordinateTransformation(source, target)
+
     pts_coordinates = []
     point_base = ogr.Geometry(ogr.wkbPoint)
     for coordinate in coordinates:
         point = point_base.__copy__()
         point.AddPoint(coordinate[0], coordinate[1])
+        point.Transform(transform)
         pts_coordinates.append(point)
 
     gdb = open_gdb(ssurgo_folder_path)

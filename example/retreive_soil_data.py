@@ -4,6 +4,6 @@ from src.main import retrieve_soil_composition
 
 ssurgo_folder_path = Path().absolute().parent / 'resources' / 'SSURGO' / 'soils_GSSURGO_oh_3905571_01' \
                      / 'soils' / 'gssurgo_g_oh' / 'gSSURGO_OH.gdb'
-coordinates = [(993448, 1954498), (962309, 2065705), (993448, 2065705)]
+coordinates = [(40.574234, -83.292448), (40.519224, -82.799437), (40.521048, -82.790174)]
 
 soil_data_list = retrieve_soil_composition(coordinates, ssurgo_folder_path)
