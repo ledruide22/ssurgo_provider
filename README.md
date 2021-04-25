@@ -1,6 +1,9 @@
 Ssurgo PROVIDER
 ==============
 
+By using this code you are able to retrieve soil composition for severals point over the USA.
+For more information see https://www.nrcs.usda.gov/wps/portal/nrcs/detail/soils/survey/?cid=nrcs142p2_053627
+
 1. Requirements
 
 Download data from https://gdg.sc.egov.usda.gov/GDGOrder.aspx and unzip it.
