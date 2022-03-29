@@ -10,11 +10,12 @@ with open('LICENSE') as f:
 
 setup(
     name='ssurgo_provider',
-    version='0.1.0',
+    version='0.1.1',
     description='ssurgo soil data provider',
     long_description=readme,
     author='Dauloudet Olivier',
     url='https://github.com/Smeaol22/ssurgo_provider.git',
     license=license,
-    packages=find_packages()
+    package_dir={'': 'src'},
+    packages=find_packages('src')
 )
