@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.main import retrieve_soil_composition
+from src.ssurgo_provider.main import retrieve_soil_composition
 
 # This example is base on geodatabase obtain from ssurgo on Ohio area
 ssurgo_folder_path = Path().absolute().parent / 'resources' / 'SSURGO' / 'soils_GSSURGO_oh_3905571_01' \

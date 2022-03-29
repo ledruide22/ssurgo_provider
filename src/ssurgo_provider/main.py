@@ -3,7 +3,7 @@ from math import isnan
 import pandas as pd
 from osgeo import ogr, osr
 
-from src.object.ssurgo_soil_dto import SoilHorizon, SsurgoSoilDto
+from src.ssurgo_provider.object.ssurgo_soil_dto import SoilHorizon, SsurgoSoilDto
 
 
 def open_gdb(ssurgo_folder_path):
