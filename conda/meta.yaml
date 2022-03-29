@@ -1,0 +1,26 @@
+package:
+  name: ssurgo_provider
+  version: "0.1.0"
+
+source:
+  path:
+    ../
+
+build:
+  number: 0
+  noarch: python
+  script: pip install .
+
+requirements:
+  host:
+    - pip
+    - python
+  run:
+    - python
+    - gdal
+    - pandas
+
+about:
+  license: BSD
+  license_file: LICENSE
+  summary:
