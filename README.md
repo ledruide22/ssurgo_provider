@@ -6,7 +6,7 @@ For more information see https://www.nrcs.usda.gov/wps/portal/nrcs/detail/soils/
 
 1. Requirements
 
-Download data from https://gdg.sc.egov.usda.gov/GDGOrder.aspx and unzip it.
+Download data from https://gdg.sc.egov.usda.gov/GDGOrder.aspx or https://nrcs.app.box.com/v/soils/folder/148414960239 and unzip it.
 
 2. How to use it
 
