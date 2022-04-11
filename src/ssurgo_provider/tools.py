@@ -1,9 +1,74 @@
+import os
 from math import isnan
+from pathlib import Path
 
+import geopandas
 import pandas as pd
 from osgeo import ogr, osr
+from shapely.geometry import Point
 
 from .object.ssurgo_soil_dto import SoilHorizon, SsurgoSoilDto
+from .object.state_info import StateInfo, StateInfoStatus
+from .param import state_code
+
+
+def retrieve_multiple_soil_data(coordinates, disable_file_error=True, disable_location_error=True):
+    points = [Point(coordinate[1], coordinate[0]) for coordinate in coordinates]
+    states_info_list = retrieve_state_code(points=points, disable_location_error=disable_location_error)
+    states_info_list = find_ssurgo_state_folder_path(states_info_list, disable_file_error)
+    soil_data_list = manage_retrieve_soils_composition(states_info_list)
+    return soil_data_list
+
+
+def find_ssurgo_state_folder_path(state_info_list, disable_file_error=True):
+    """
+    Find the gbd folder path associated to the state_code
+    Args:
+        state_info_list (list): list of StateInfo object with state code complete
+        disable_file_error (bool): if true do not stop process with exception if missing file
+    Returns:
+        (list(path)): path to ssurgo soil data for the state associated to the state_point
+
+    """
+    ssurgo_data_pth = os.environ['SSURGO_DATA']
+    for state_info in state_info_list:
+        if state_info.status == StateInfoStatus.IN_PROGRESS:
+            ssurgo_state_folder = f'gSSURGO_{state_info.state_code.upper()}.gdb'
+            if ssurgo_state_folder not in os.listdir(ssurgo_data_pth):
+                if not disable_file_error:
+                    raise ValueError(f"no ssurgo data find for state {state_code}, please download it")
+                else:
+                    state_info.status = StateInfoStatus.NO_GDB_FILE_FOUND
+            else:
+                state_info.state_folder_pth = Path(ssurgo_data_pth) / ssurgo_state_folder
+    return state_info_list
+
+
+def retrieve_state_code(points, disable_location_error=True):
+    """
+    Find US state code for the point (lat, long)
+    Args:
+        points (list(Point)): list of Point
+        disable_location_error (bool): if false display error and stop process if one point is out of USA
+    Returns:
+        (list(StateInfo)): list of state_info with US code and uodate status
+    """
+    states_info_list = []
+    states_shapefile_path = Path().absolute().parent / 'resources' / 'MAP' / 'gadm36_USA_shp' / 'gadm36_USA_1.shp'
+    states_gdf = geopandas.read_file(states_shapefile_path)
+    for state_name in states_gdf.NAME_1:
+        geom = states_gdf[states_gdf.NAME_1 == state_name].geometry.unary_union
+        for point in points:
+            if geom.contains(point):
+                points.remove(point)
+                states_info_list.append(
+                    StateInfo(state_code=state_code[state_name.lower()], points=point, status=StateInfoStatus.IN_PROGRESS))
+        if len(points) == 0:
+            return states_info_list
+    [states_info_list.append(state_code=None, points=point, status=StateInfoStatus.NOT_IN_USA) for point in points]
+    if not disable_location_error:
+        raise ValueError(f'point: ({points}) are not in USA, please select a point in USA')
+    return states_info_list
 
 
 def open_gdb(ssurgo_folder_path):
@@ -188,6 +253,25 @@ def build_soil_composition(pts_info_df, soil_data_dict):
             ssurgo_soil_dto.horizon_2 = soil_horizon
         soil_composition_list.append(ssurgo_soil_dto)
     return soil_composition_list
+
+
+def manage_retrieve_soils_composition(state_info_list):
+    sort_by_state = {}
+    state_list = []
+    for state_info in state_info_list:
+        if state_info.status == StateInfoStatus.IN_PROGRESS:
+            if state_info not in state_list:
+                state_list.append(state_info.state_code)
+                sort_by_state[state_info.state_code] = [state_info]
+            else:
+                sort_by_state[state_info.state_code].append(state_info)
+    for state in state_list:
+        ssurgo_folder_path = sort_by_state[state][0].state_folder_pth
+        coordinates = [(state_info.points.y, state_info.points.x) for state_info in sort_by_state[state]]
+        soil_data_list = retrieve_soil_composition(coordinates, ssurgo_folder_path)
+        [state_info.set_soil(soil_data)
+         for state_info, soil_data in zip(sort_by_state[state], soil_data_list)]
+    return state_info_list
 
 
 def retrieve_soil_composition(coordinates, ssurgo_folder_path):
