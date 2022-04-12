@@ -13,6 +13,9 @@ class StateInfo:
         self.soil_data = soil_data
         self.status = StateInfoStatus.SUCCEED
 
+    def soil_data_to_dict(self):
+        return self.soil_data.to_dict()
+
 
 class StateInfoStatus(Enum):
     NOT_IN_USA = "FAILED"
