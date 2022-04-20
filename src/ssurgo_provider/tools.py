@@ -9,7 +9,22 @@ from shapely.geometry import Point
 
 from .object.ssurgo_soil_dto import SoilHorizon, SsurgoSoilDto
 from .object.state_info import StateInfo, StateInfoStatus
-from .param import state_code
+from .param import states_code
+
+
+def retrieve_mu_global_from_raster_by_zone(geojson):
+    """
+    This function retrieve all ++++++++ in the geojson
+    Args:
+        geojson (dict): geojson represent the area where mu_global should be find
+
+    Returns:
+        (list(dict)): list of  inside the geojson area with their area percentage
+    """
+
+    if geojson['type'].lower() != "polygon":
+        raise ValueError("Geojson should be of type polygon only")
+    return False
 
 
 def retrieve_multiple_soil_data(coordinates, disable_file_error=True, disable_location_error=True):
@@ -28,15 +43,15 @@ def find_ssurgo_state_folder_path(state_info_list, disable_file_error=True):
         disable_file_error (bool): if true do not stop process with exception if missing file
     Returns:
         (list(path)): path to ssurgo soil data for the state associated to the state_point
-
     """
+
     ssurgo_data_pth = os.environ['SSURGO_DATA']
     for state_info in state_info_list:
         if state_info.status == StateInfoStatus.IN_PROGRESS:
             ssurgo_state_folder = f'gSSURGO_{state_info.state_code.upper()}.gdb'
             if ssurgo_state_folder not in os.listdir(ssurgo_data_pth):
                 if not disable_file_error:
-                    raise ValueError(f"no ssurgo data find for state {state_code}, please download it")
+                    raise ValueError(f"no ssurgo data find for state {state_info.state_code}, please download it")
                 else:
                     state_info.status = StateInfoStatus.NO_GDB_FILE_FOUND
             else:
@@ -51,20 +66,29 @@ def retrieve_state_code(points, disable_location_error=True):
         points (list(Point)): list of Point
         disable_location_error (bool): if false display error and stop process if one point is out of USA
     Returns:
-        (list(StateInfo)): list of state_info with US code and uodate status
+        (list(StateInfo)): list of state_info with US code and update status
     """
     states_info_list = []
     states_shapefile_path = Path().absolute().parent / 'resources' / 'MAP' / 'gadm36_USA_shp' / 'gadm36_USA_1.shp'
     states_gdf = geopandas.read_file(states_shapefile_path)
+
     for state_name in states_gdf.NAME_1:
-        geom = states_gdf[states_gdf.NAME_1 == state_name].geometry.unary_union
+        state_code = states_code[state_name.lower().replace(" ", "_")]
+        lat_lim = state_code['lat_lim']
+        long_lim = state_code['long_lim']
+        geom = None
         for point in points:
-            if geom.contains(point):
-                points.remove(point)
-                states_info_list.append(
-                    StateInfo(state_code=state_code[state_name.lower()], points=point, status=StateInfoStatus.IN_PROGRESS))
+            if lat_lim[0] <= point.y <= lat_lim[1] and long_lim[0] <= point.x <= long_lim[1]:
+                if geom is None:
+                    geom = states_gdf[states_gdf.NAME_1 == state_name].geometry.unary_union
+                if geom.contains(point):
+                    points.remove(point)
+                    states_info_list.append(
+                        StateInfo(state_code=state_code["code"], points=point,
+                                  status=StateInfoStatus.IN_PROGRESS))
         if len(points) == 0:
             return states_info_list
+
     [states_info_list.append(state_code=None, points=point, status=StateInfoStatus.NOT_IN_USA) for point in points]
     if not disable_location_error:
         raise ValueError(f'point: ({points}) are not in USA, please select a point in USA')
