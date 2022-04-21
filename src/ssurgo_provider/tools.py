@@ -28,6 +28,16 @@ def retrieve_mu_global_from_raster_by_zone(geojson):
 
 
 def retrieve_multiple_soil_data(coordinates, disable_file_error=True, disable_location_error=True):
+    """
+    Function to retrieve soil composition from a list of location (coordinates)
+    Args:
+        coordinates (list(tuple)): list of location [(lat, long), (lat,long), ...]
+        disable_file_error (bool): if True disable throw exception when data file is not found for a state
+        disable_location_error (bool): if True disable throw exception when location is not in USA
+
+    Returns:
+        soil_data_list (list(StateInfo)): list with complete soil StateInfo object
+    """
     points = [Point(coordinate[1], coordinate[0]) for coordinate in coordinates]
     states_info_list = retrieve_state_code(points=points, disable_location_error=disable_location_error)
     states_info_list = find_ssurgo_state_folder_path(states_info_list, disable_file_error)
@@ -70,6 +80,8 @@ def retrieve_state_code(points, disable_location_error=True):
     """
     states_info_list = []
     states_shapefile_path = Path().absolute().parent / 'resources' / 'MAP' / 'gadm36_USA_shp' / 'gadm36_USA_1.shp'
+    if not states_shapefile_path.exists():
+        raise FileNotFoundError(f"no gadm36_USA_1.shp find in {str(states_shapefile_path.parent)}")
     states_gdf = geopandas.read_file(states_shapefile_path)
 
     for state_name in states_gdf.NAME_1:
@@ -89,7 +101,8 @@ def retrieve_state_code(points, disable_location_error=True):
         if len(points) == 0:
             return states_info_list
 
-    [states_info_list.append(state_code=None, points=point, status=StateInfoStatus.NOT_IN_USA) for point in points]
+    [states_info_list.append(StateInfo(state_code=None, points=point, status=StateInfoStatus.NOT_IN_USA)) for point in
+     points]
     if not disable_location_error:
         raise ValueError(f'point: ({points}) are not in USA, please select a point in USA')
     return states_info_list
