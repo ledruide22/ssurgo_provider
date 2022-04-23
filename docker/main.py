@@ -3,9 +3,9 @@ import json
 from flask import Flask, Response, request
 from shapely.geometry import Point
 
-from src.ssurgo_provider.tools import retrieve_state_code, find_ssurgo_state_folder_path, \
-    manage_retrieve_soils_composition
+from ssurgo_provider.main import find_ssurgo_state_folder_path, manage_retrieve_soils_composition
 from ssurgo_provider.object.state_info import StateInfo, StateInfoStatus
+from ssurgo_provider.spatial_tools import retrieve_state_code
 
 
 def launch(port="8180", host="0.0.0.0"):
