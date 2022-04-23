@@ -1,15 +1,13 @@
 import os
-from math import isnan
 from pathlib import Path
 
-import geopandas
-import pandas as pd
-from osgeo import ogr, osr
-from shapely.geometry import Point, Polygon
-
-from .object.ssurgo_soil_dto import SoilHorizon, SsurgoSoilDto
-from .object.state_info import StateInfo, StateInfoStatus
-from .param import states_code
+from osgeo import ogr
+from shapely.geometry import Point
+from ssurgo_provider.object.gbd_connect import GbdConnect
+from ssurgo_provider.object.state_info import StateInfoStatus
+from ssurgo_provider.soil_tools import find_soil_id_ref, find_soil_horizon_distribution, extract_soil_horizon_data, \
+    build_soil_composition
+from ssurgo_provider.spatial_tools import transform_wgs84_to_albers, find_county_id, retrieve_state_code
 
 
 def retrieve_multiple_soil_data(coordinates, disable_file_error=True, disable_location_error=True):
@@ -54,31 +52,6 @@ def find_ssurgo_state_folder_path(state_info_list, disable_file_error=True):
     return state_info_list
 
 
-def open_gdb(ssurgo_folder_path):
-    """
-        This function is usefull to open the ssurgo geo data base containing all soil information
-    Args:
-        ssurgo_folder_path (path): path to the ssurgo .gdb folder
-
-    Returns:
-        gdb (DataSource): ssurgo state datasource
-    """
-
-    # get the driver
-    driver = ogr.GetDriverByName("OpenFileGDB")
-    if driver is None:
-        raise Exception("OpenFileGDB driver is absent from your gdal installation")
-
-    # opening the FileGDB
-    try:
-        gdb = driver.Open(str(ssurgo_folder_path), 0)
-    except Exception as e:
-        raise Exception(f"Unable to open ssurgo gdb {e}")
-    return gdb
-
-
-
-
 def retrieve_soil_composition(coordinates, ssurgo_folder_path):
     """
         This function is usefull to retrieve soil data for the location specified in coordinates
@@ -90,18 +63,8 @@ def retrieve_soil_composition(coordinates, ssurgo_folder_path):
         soil_composition_list (list): list of SsurgoSoilDto, one for each location
 
     """
-    target = osr.SpatialReference()
-    target.ImportFromWkt('PROJCS["USA_Contiguous_Albers_Equal_Area_Conic_USGS_version",'
-                         'GEOGCS["GCS_North_American_1983",DATUM["D_North_American_1983",'
-                         'SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],'
-                         'UNIT["Degree",0.0174532925199433]],PROJECTION["Albers"],'
-                         'PARAMETER["False_Easting",0.0],PARAMETER["False_Northing",0.0],'
-                         'PARAMETER["Central_Meridian",-96.0],PARAMETER["Standard_Parallel_1",29.5],'
-                         'PARAMETER["Standard_Parallel_2",45.5],PARAMETER["Latitude_Of_Origin",23.0],'
-                         'UNIT["Meter",1.0],AUTHORITY["ESRI","102039"]]')
-    source = osr.SpatialReference()
-    source.ImportFromEPSG(4326)
-    transform = osr.CoordinateTransformation(source, target)
+
+    transform = transform_wgs84_to_albers()
 
     pts_coordinates = []
     point_base = ogr.Geometry(ogr.wkbPoint)
@@ -111,7 +74,9 @@ def retrieve_soil_composition(coordinates, ssurgo_folder_path):
         point.Transform(transform)
         pts_coordinates.append(point)
 
-    gdb = open_gdb(ssurgo_folder_path)
+    # open connection to geo database
+    gdb_connection = GbdConnect(ssurgo_folder_path)
+    gdb = gdb_connection.gdb
 
     pts_info_df = find_county_id(pts_coordinates, gdb)
     pts_info_df = find_soil_id_ref(pts_info_df, gdb)
@@ -121,3 +86,30 @@ def retrieve_soil_composition(coordinates, ssurgo_folder_path):
 
     soil_composition_list = build_soil_composition(pts_info_df, soil_data_dict)
     return soil_composition_list
+
+
+def manage_retrieve_soils_composition(state_info_list):
+    """
+
+    Args:
+        state_info_list (list): list of state info object
+
+    Returns:
+
+    """
+    sort_by_state = {}
+    state_list = []
+    for state_info in state_info_list:
+        if state_info.status == StateInfoStatus.IN_PROGRESS:
+            if state_info not in state_list:
+                state_list.append(state_info.state_code)
+                sort_by_state[state_info.state_code] = [state_info]
+            else:
+                sort_by_state[state_info.state_code].append(state_info)
+    for state in state_list:
+        ssurgo_folder_path = sort_by_state[state][0].state_folder_pth
+        coordinates = [(state_info.points.y, state_info.points.x) for state_info in sort_by_state[state]]
+        soil_data_list = retrieve_soil_composition(coordinates, ssurgo_folder_path)
+        [state_info.set_soil(soil_data)
+         for state_info, soil_data in zip(sort_by_state[state], soil_data_list)]
+    return state_info_list
