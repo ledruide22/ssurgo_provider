@@ -39,7 +39,7 @@ def retrieve_mu_key_from_raster_by_zone(geojson, ssurgo_folder_path):
         ssurgo_folder_path (path):
 
     Returns:
-        (list(dict)): list of mu_key inside the geojson area with their area percentage
+        (dict): dict of mu_key inside the geojson area with their area percentage
     """
 
     if geojson['type'].lower() != "polygon":
