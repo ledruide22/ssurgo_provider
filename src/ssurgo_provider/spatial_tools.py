@@ -52,21 +52,25 @@ def retrieve_mu_key_from_raster_by_zone(geojson, ssurgo_folder_path):
     gdb = gdb_connection.gdb
 
     layer_mu_polygon = gdb.GetLayer("MUPOLYGON")
-    spatial_ref = layer_mu_polygon.GetSpatialRef()
     polygon = ogr.CreateGeometryFromWkt(str(Polygon(geojson['coordinates'][0])))
-
     polygon.Transform(transform)
+
+    layer_mu_polygon.SetSpatialFilter(polygon)
+
     response = {}
     for feature in layer_mu_polygon:
         geometry = feature.GetGeometryRef()
         inter = polygon.Intersection(geometry)
-        if inter is not None:
+        if not inter.IsEmpty():
             mu_key = int(feature.GetField("MUKEY"))
             if mu_key not in response.keys():
-                response[mu_key] = [inter]
+                response[mu_key] = inter.GetArea()
             else:
-                response[mu_key].append(inter)
-    return False
+                response[mu_key] += inter.GetArea()
+    total_area = sum(response.values())
+    for mu_key in response.keys():
+        response[mu_key] = round(response[mu_key] / total_area * 100, 2)
+    return response
 
 
 def retrieve_state_code(points, disable_location_error=True):
