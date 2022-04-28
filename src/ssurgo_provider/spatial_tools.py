@@ -4,10 +4,10 @@ import geopandas
 import pandas as pd
 from osgeo import osr, ogr
 from shapely.geometry import Polygon
-from ssurgo_provider.object.state_info import StateInfo, StateInfoStatus
-from ssurgo_provider.param import states_code
 
 from src.ssurgo_provider.object.gbd_connect import GbdConnect
+from ssurgo_provider.object.state_info import StateInfo, StateInfoStatus
+from ssurgo_provider.param import states_code
 
 
 def transform_wgs84_to_albers():
@@ -31,19 +31,33 @@ def transform_wgs84_to_albers():
     return osr.CoordinateTransformation(source, target)
 
 
-def retrieve_mu_key_from_raster_by_zone(geojson, ssurgo_folder_path):
+def convert_geojson_to_polygon(geojson):
+    """
+    Convert geoJson to an ogr Polygon
+    Args:
+        geojson (dict): the geojson to convert with coordinates as list of (long, lat)
+
+    Returns:
+        (polygon): the geojson converted to polygon
+    """
+    if geojson['type'].lower() != "polygon":
+        raise ValueError("Geojson should be of type polygon only")
+    polygon = ogr.CreateGeometryFromWkt(
+        str(Polygon([(coordinate[1], coordinate[0]) for coordinate in geojson['coordinates']])))
+
+    return polygon
+
+
+def retrieve_mu_key_from_raster_by_zone(polygon, ssurgo_folder_path):
     """
     This function retrieve all mukey in the geojson
     Args:
-        geojson (dict): geojson represent the area where mu_global should be find
+        polygon (Polygon): polygon represent the area where mu_global should be find
         ssurgo_folder_path (path):
 
     Returns:
         (dict): dict of mu_key inside the geojson area with their area percentage
     """
-
-    if geojson['type'].lower() != "polygon":
-        raise ValueError("Geojson should be of type polygon only")
 
     transform = transform_wgs84_to_albers()
 
@@ -52,9 +66,8 @@ def retrieve_mu_key_from_raster_by_zone(geojson, ssurgo_folder_path):
     gdb = gdb_connection.gdb
 
     layer_mu_polygon = gdb.GetLayer("MUPOLYGON")
-    polygon = ogr.CreateGeometryFromWkt(str(Polygon(geojson['coordinates'][0])))
-    polygon.Transform(transform)
 
+    polygon.Transform(transform)
     layer_mu_polygon.SetSpatialFilter(polygon)
 
     response = {}
@@ -75,9 +88,9 @@ def retrieve_mu_key_from_raster_by_zone(geojson, ssurgo_folder_path):
 
 def retrieve_state_code(points, disable_location_error=True):
     """
-    Find US state code for the point (lat, long)
+    Find US state code for the point (long, lat)
     Args:
-        points (list(Point)): list of Point
+        points (list(Point)): list of Point(long, lat)
         disable_location_error (bool): if false display error and stop process if one point is out of USA
     Returns:
         (list(StateInfo)): list of state_info with US code and update status

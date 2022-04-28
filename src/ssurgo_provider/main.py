@@ -14,7 +14,7 @@ def retrieve_multiple_soil_data(coordinates, disable_file_error=True, disable_lo
     """
     Function to retrieve soil composition from a list of location (coordinates)
     Args:
-        coordinates (list(tuple)): list of location [(lat, long), (lat,long), ...]
+        coordinates (list(tuple)): list of location [(lat, long ), (lat, long), ...]
         disable_file_error (bool): if True disable throw exception when data file is not found for a state
         disable_location_error (bool): if True disable throw exception when location is not in USA
 
