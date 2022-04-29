@@ -10,7 +10,7 @@ with open('LICENSE') as f:
 
 setup(
     name='ssurgo_provider',
-    version='0.1.1',
+    version='0.2.0',
     description='ssurgo soil data provider',
     long_description=readme,
     author='Dauloudet Olivier',
