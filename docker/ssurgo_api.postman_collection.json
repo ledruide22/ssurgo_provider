@@ -1,0 +1,92 @@
+{
+	"info": {
+		"_postman_id": "e6ff8f7f-4a06-42bf-952d-526281278a49",
+		"name": "ssurgo_api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "http://localhost:8180/mu_key_by_zone?geojson={\"type\": \"Polygon\", \"coordinates\": [[-83.292448, 40.574234], [-83.292448, 40.584234], [-83.302448, 40.584234], [-83.302448, 40.574234],[-83.292448, 40.574234]]}",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8180/mu_key_by_zone?geojson={\"type\": \"Polygon\", \"coordinates\": [[-83.292448, 40.574234], [-83.292448, 40.584234], [-83.302448, 40.584234], [-83.302448, 40.574234],[-83.292448, 40.574234]]}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8180",
+					"path": [
+						"mu_key_by_zone"
+					],
+					"query": [
+						{
+							"key": "geojson",
+							"value": "{\"type\": \"Polygon\", \"coordinates\": [[-83.292448, 40.574234], [-83.292448, 40.584234], [-83.302448, 40.584234], [-83.302448, 40.574234],[-83.292448, 40.574234]]}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8180/soil_data?long=-100.56407&lat=38.47736",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8180/soil_data?long=-100.56407&lat=38.47736",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8180",
+					"path": [
+						"soil_data"
+					],
+					"query": [
+						{
+							"key": "long",
+							"value": "-100.56407"
+						},
+						{
+							"key": "lat",
+							"value": "38.47736"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8180/find_state?long=-100.56407&lat=38.47736",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8180/find_state?long=-100.56407&lat=38.47736",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8180",
+					"path": [
+						"find_state"
+					],
+					"query": [
+						{
+							"key": "long",
+							"value": "-100.56407"
+						},
+						{
+							"key": "lat",
+							"value": "38.47736"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
