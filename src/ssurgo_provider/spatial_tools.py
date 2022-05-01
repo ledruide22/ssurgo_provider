@@ -1,11 +1,10 @@
-from pathlib import Path
-
-import geopandas
+import osgeo
 import pandas as pd
 from osgeo import osr, ogr
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 
-from src.ssurgo_provider.object.gbd_connect import GbdConnect
+from ssurgo_provider.object.gbd_connect import GbdConnect
+from ssurgo_provider.object.map_load import OpenMap
 from ssurgo_provider.object.state_info import StateInfo, StateInfoStatus
 from ssurgo_provider.param import states_code
 
@@ -86,20 +85,19 @@ def retrieve_mu_key_from_raster_by_zone(polygon, ssurgo_folder_path):
     return response
 
 
-def retrieve_state_code(points, disable_location_error=True):
+def retrieve_state_code(points, states_gdf=None, disable_location_error=True):
     """
-    Find US state code for the point (long, lat)
+    Find US state code for the point (lat, long)
     Args:
-        points (list(Point)): list of Point(long, lat)
+        points (list(Point)): list of Point(lat, long)
+        states_gdf (GeoDataFrame/None): GeoDataFrame with all US state shapefile
         disable_location_error (bool): if false display error and stop process if one point is out of USA
     Returns:
         (list(StateInfo)): list of state_info with US code and update status
     """
     states_info_list = []
-    states_shapefile_path = Path().absolute().parent / 'resources' / 'MAP' / 'gadm36_USA_shp' / 'gadm36_USA_1.shp'
-    if not states_shapefile_path.exists():
-        raise FileNotFoundError(f"no gadm36_USA_1.shp find in {str(states_shapefile_path.parent)}")
-    states_gdf = geopandas.read_file(states_shapefile_path)
+    if states_gdf is None:
+        states_gdf = OpenMap()
 
     for state_name in states_gdf.NAME_1:
         state_code = states_code[state_name.lower().replace(" ", "_")]
@@ -107,10 +105,14 @@ def retrieve_state_code(points, disable_location_error=True):
         long_lim = state_code['long_lim']
         geom = None
         for point in points:
-            if lat_lim[0] <= point.y <= lat_lim[1] and long_lim[0] <= point.x <= long_lim[1]:
+            if isinstance(point, osgeo.ogr.Geometry):
+                point_shp = Point(point.GetY(), point.GetX())
+            else:
+                point_shp = Point(point.y, point.x)
+            if lat_lim[0] <= point_shp.y <= lat_lim[1] and long_lim[0] <= point_shp.x <= long_lim[1]:
                 if geom is None:
                     geom = states_gdf[states_gdf.NAME_1 == state_name].geometry.unary_union
-                if geom.contains(point):
+                if geom.contains(point_shp):
                     points.remove(point)
                     states_info_list.append(
                         StateInfo(state_code=state_code["code"], points=point,
@@ -121,7 +123,9 @@ def retrieve_state_code(points, disable_location_error=True):
     [states_info_list.append(StateInfo(state_code=None, points=point, status=StateInfoStatus.NOT_IN_USA)) for point in
      points]
     if not disable_location_error:
-        raise ValueError(f'point: ({points}) are not in USA, please select a point in USA')
+        raise ValueError(f'point is not in USA, please select a point in USA')
+    if not states_gdf.is_permanent:
+        del states_gdf
     return states_info_list
 
 

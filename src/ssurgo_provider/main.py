@@ -3,6 +3,7 @@ from pathlib import Path
 
 from osgeo import ogr
 from shapely.geometry import Point
+
 from ssurgo_provider.object.gbd_connect import GbdConnect
 from ssurgo_provider.object.state_info import StateInfoStatus
 from ssurgo_provider.soil_tools import find_soil_id_ref, find_soil_horizon_distribution, extract_soil_horizon_data, \
@@ -21,7 +22,7 @@ def retrieve_multiple_soil_data(coordinates, disable_file_error=True, disable_lo
     Returns:
         soil_data_list (list(StateInfo)): list with complete soil StateInfo object
     """
-    points = [Point(coordinate[1], coordinate[0]) for coordinate in coordinates]
+    points = [Point(coordinate[0], coordinate[1]) for coordinate in coordinates]
     states_info_list = retrieve_state_code(points=points, disable_location_error=disable_location_error)
     states_info_list = find_ssurgo_state_folder_path(states_info_list, disable_file_error)
     soil_data_list = manage_retrieve_soils_composition(states_info_list)
@@ -90,12 +91,12 @@ def retrieve_soil_composition(coordinates, ssurgo_folder_path):
 
 def manage_retrieve_soils_composition(state_info_list):
     """
-
+    Manage all pipeline to retrieve soil data
     Args:
-        state_info_list (list): list of state info object
+        state_info_list (list): list of state info object (with lat and long)
 
     Returns:
-
+        (list(state_info)): list of state info object complete with soil data
     """
     sort_by_state = {}
     state_list = []
@@ -108,7 +109,7 @@ def manage_retrieve_soils_composition(state_info_list):
                 sort_by_state[state_info.state_code].append(state_info)
     for state in state_list:
         ssurgo_folder_path = sort_by_state[state][0].state_folder_pth
-        coordinates = [(state_info.points.y, state_info.points.x) for state_info in sort_by_state[state]]
+        coordinates = [(state_info.points.x, state_info.points.y) for state_info in sort_by_state[state]]
         soil_data_list = retrieve_soil_composition(coordinates, ssurgo_folder_path)
         [state_info.set_soil(soil_data)
          for state_info, soil_data in zip(sort_by_state[state], soil_data_list)]

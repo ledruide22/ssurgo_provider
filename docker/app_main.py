@@ -4,6 +4,7 @@ from flask import Flask, Response, request
 from shapely.geometry import Point
 
 from ssurgo_provider.main import find_ssurgo_state_folder_path, manage_retrieve_soils_composition
+from ssurgo_provider.object.map_load import OpenMap
 from ssurgo_provider.object.state_info import StateInfo, StateInfoStatus
 from ssurgo_provider.spatial_tools import retrieve_state_code, convert_geojson_to_polygon, \
     retrieve_mu_key_from_raster_by_zone
@@ -11,6 +12,7 @@ from ssurgo_provider.spatial_tools import retrieve_state_code, convert_geojson_t
 
 def launch(port="8180", host="0.0.0.0"):
     app = Flask(__name__)
+    states_gdf = OpenMap(is_permanent=True)
 
     @app.route('/')
     def status():
@@ -22,9 +24,10 @@ def launch(port="8180", host="0.0.0.0"):
         try:
             lat = float(arguments.get('lat'))
             long = float(arguments.get('long'))
-            states_info_list = retrieve_state_code(Point(long, lat), disable_location_error=False)
-            response = {'state_code': states_info_list[0].state_code, 'lat': states_info_list[0].point.y,
-                        'long': states_info_list[0].point.x}
+            states_info_list = retrieve_state_code([Point(lat, long)], states_gdf=states_gdf,
+                                                   disable_location_error=False)
+            response = {'state_code': states_info_list[0].state_code, 'lat': states_info_list[0].points.x,
+                        'long': states_info_list[0].points.y}
             return Response(
                 response=json.dumps(response, sort_keys=True, ensure_ascii=False),
                 mimetype='application/json')
@@ -41,12 +44,13 @@ def launch(port="8180", host="0.0.0.0"):
         try:
             lat = float(arguments.get('lat'))
             long = float(arguments.get('long'))
-            state_code = str(arguments.get('state_code', None))
-            points = [Point(long, lat)]
+            state_code = arguments.get('state_code', None)
             if state_code is None:
-                states_info_list = retrieve_state_code(points=points, disable_location_error=False)
+                states_info_list = retrieve_state_code(points=[Point(lat, long)], states_gdf=states_gdf,
+                                                       disable_location_error=False)
             else:
-                states_info_list = [StateInfo(state_code=state_code, points=points, status=StateInfoStatus.IN_PROGRESS)]
+                states_info_list = [
+                    StateInfo(state_code=state_code, points=[Point(lat, long)], status=StateInfoStatus.IN_PROGRESS)]
             find_ssurgo_state_folder_path(states_info_list, disable_file_error=False)
             soil_data_list = manage_retrieve_soils_composition(states_info_list)
             return Response(
@@ -68,7 +72,7 @@ def launch(port="8180", host="0.0.0.0"):
             polygon = convert_geojson_to_polygon(geojson)
             points = polygon.Centroid()
             if state_code is None:
-                states_info_list = retrieve_state_code(points=points, disable_location_error=False)
+                states_info_list = retrieve_state_code(points=[points], disable_location_error=False)
             else:
                 states_info_list = [StateInfo(state_code=state_code, points=points, status=StateInfoStatus.IN_PROGRESS)]
             find_ssurgo_state_folder_path(states_info_list, disable_file_error=False)

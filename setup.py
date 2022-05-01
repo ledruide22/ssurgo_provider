@@ -20,6 +20,8 @@ setup(
     packages=find_packages('src'),
     install_requires=[
         'gdal',
-        'pandas'
+        'pandas',
+        'geopandas',
+        'shapely'
     ]
 )

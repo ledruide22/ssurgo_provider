@@ -22,6 +22,8 @@ class GbdConnect:
             gdb = driver.Open(str(ssurgo_folder_path), 0)
         except Exception as e:
             raise Exception(f"Unable to open ssurgo gdb {e}")
+        if gdb is None:
+            raise ValueError(f"Unable to open ssurgo gdb file at {str(ssurgo_folder_path)} ")
         return gdb
 
     def close_connection(self):
