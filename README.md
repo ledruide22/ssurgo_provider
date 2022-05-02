@@ -10,6 +10,8 @@ Download data from https://gdg.sc.egov.usda.gov/GDGOrder.aspx and unzip it.
 
 2. How to use it
 
+a. With Conda
+-------------
 Create conda environement: 
 > conda create -n ssurgo_provider python=3.8
 
@@ -22,3 +24,15 @@ and the path where the Ssurgo geodatabase is uncompress.
 
 See example in example/retrieve_soil_data
 
+b. With Docker
+
+0. prepare folder with state gdb
+On your computer, create a folder named SSURGO and put alle the gdb state file inside
+
+1. build image in the project
+> docker build . -t ssurgo_linux_docker:0.0.1 -f .\docker\Dockerfile
+
+2. launch the container
+> docker run --mount type=bind,source=<folder path define in step 0>,target=/resources  -p 8180:8180 ssurgo_linux_docker:0.0.1
+
+> docker run --mount type=bind,source=C://work//ssurgo_provider//resources//SSURGO,target=/resources/SSURGO  -p 8180:8180 ssurgo_linux_docker:0.0.1

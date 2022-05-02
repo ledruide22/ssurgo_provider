@@ -15,10 +15,10 @@ SHELL ["/bin/bash", "-c"]
 
 COPY --from=0 /src/dist/*.whl /opt/ssurgo_provider/
 
-RUN mkdir -p resources/gSSURGO_KS.gdb
-COPY ../resources/SSURGO/gSSURGO_KS.gdb/* /resources/gSSURGO_KS.gdb/
-COPY ../resources/SSURGO/gSSURGO_OH.gdb/* /resources/gSSURGO_OH.gdb/
+RUN mkdir -p resources/MAP/gadm36_USA_shp
+run mkdir -p resources/SSURGO
 COPY ../resources/MAP/gadm36_USA_shp/* /resources/MAP/gadm36_USA_shp/
+
 
 ENV SSURGO_DATA /resources/
 RUN export SSURGO_DATA
@@ -33,5 +33,5 @@ EXPOSE 8180/tcp
 
 # define entry point
 COPY docker/app_main.py src/app_main.py
-ENTRYPOINT ["/opt/conda/envs/myenv/bin/python", "src/app_main.py"]
+#ENTRYPOINT ["/opt/conda/envs/myenv/bin/python", "src/app_main.py"]
 

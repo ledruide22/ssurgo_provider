@@ -97,7 +97,8 @@ def retrieve_state_code(points, states_gdf=None, disable_location_error=True):
     """
     states_info_list = []
     if states_gdf is None:
-        states_gdf = OpenMap()
+        open_map = OpenMap()
+        states_gdf = open_map.states_gdf
 
     for state_name in states_gdf.NAME_1:
         state_code = states_code[state_name.lower().replace(" ", "_")]
