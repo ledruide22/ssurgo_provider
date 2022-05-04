@@ -6,8 +6,24 @@ class SsurgoSoilDto:
         self.horizon_1 = None
         self.horizon_2 = None
 
+    def to_dict(self):
+        horizon_0_dict = None
+        horizon_1_dict = None
+        horizon_2_dict = None
+        if self.horizon_0 is not None:
+            horizon_0_dict = self.horizon_0.__dict__
+        if self.horizon_1 is not None:
+            horizon_1_dict = self.horizon_1.__dict__
+        if self.horizon_2 is not None:
+            horizon_2_dict = self.horizon_2.__dict__
+        return {'latitude': self.latitude,
+                'longitude': self.longitude,
+                'horizon_0': horizon_0_dict,
+                'horizon_1': horizon_1_dict,
+                'horizon_2': horizon_2_dict}
 
-class SoilHorizon:
+
+class SoilHorizon(object):
     def __init__(self, comppct_r, feature):
         self.comppct_r = comppct_r
         self.hzname = feature.GetField("hzname")
