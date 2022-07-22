@@ -39,7 +39,7 @@ def find_ssurgo_state_folder_path(state_info_list, disable_file_error=True):
         (list(path)): path to ssurgo soil data for the state associated to the state_point
     """
 
-    ssurgo_data_pth = Path().absolute().parent / 'resources' / 'October 2021 gSSURGO by State'
+    ssurgo_data_pth = os.environ['SSURGO_DATA']
     for state_info in state_info_list:
         if state_info.status == StateInfoStatus.IN_PROGRESS:
             ssurgo_state_folder = f'gSSURGO_{state_info.state_code.upper()}.gdb'

@@ -61,7 +61,6 @@ def find_soil_horizon_distribution(pts_info_df, gdb):
                                                        columns=['co_key_0', 'co_key_1', 'co_key_2', 'co_key_0_pct',
                                                                 'co_key_1_pct', 'co_key_2_pct'])])
     for mu_key in pts_info_df.mu_key.unique():
-        print(mu_key)
         co_key_info = []
         component.SetAttributeFilter(f"mukey = '{int(mu_key)}'")
         for feature_component in component:
@@ -151,7 +150,7 @@ def build_soil_composition_without_point(pts_info_df, soil_data_dict):
     """
     soil_composition_list = []
     for _, pt_info in pts_info_df.iterrows():
-        ssurgo_soil_dto = {'mu_key':pt_info.mu_key,
+        ssurgo_soil_dto = {'mu_key': pt_info.mu_key,
                            'horizon_0': None,
                            'horizon_1': None,
                            'horizon_2': None}
